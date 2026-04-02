@@ -14,6 +14,24 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST add a single student manually
+router.post('/single', async (req, res) => {
+  try {
+    const { name, usn } = req.body;
+    if (!name || !usn) {
+      return res.status(400).json({ message: 'Name and USN are required' });
+    }
+    const newStudent = new Student({ name, usn });
+    await newStudent.save();
+    res.status(201).json(newStudent);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'USN already exists' });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Configure Multer for file upload (memory storage)
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -50,6 +68,36 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   } catch (error) {
     console.error('Error parsing excel:', error);
     res.status(500).json({ message: 'Failed to process Excel file', error: error.message });
+  }
+});
+
+// PUT update a student
+router.put('/:id', async (req, res) => {
+  try {
+    const { name, usn } = req.body;
+    const updatedStudent = await Student.findByIdAndUpdate(
+      req.params.id,
+      { name, usn },
+      { new: true, runValidators: true }
+    );
+    if (!updatedStudent) return res.status(404).json({ message: 'Student not found' });
+    res.json(updatedStudent);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'USN already exists' });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// DELETE a student
+router.delete('/:id', async (req, res) => {
+  try {
+    const deletedStudent = await Student.findByIdAndDelete(req.params.id);
+    if (!deletedStudent) return res.status(404).json({ message: 'Student not found' });
+    res.json({ message: 'Student deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

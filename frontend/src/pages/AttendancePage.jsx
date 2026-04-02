@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Check, X, Save, AlertCircle, Upload, Keyboard } from 'lucide-react';
+import { Check, X, Save, AlertCircle, Upload, Keyboard, Edit2, Trash2, UserPlus } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
 
@@ -21,6 +21,13 @@ export default function AttendancePage() {
   
   // File upload state for seeding Excel later
   const [uploading, setUploading] = useState(false);
+  
+  // Student Edit/Add states
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [editFormData, setEditFormData] = useState({ name: '', usn: '' });
+  const [isNewStudent, setIsNewStudent] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   useEffect(() => {
     fetchStudents();
@@ -113,6 +120,67 @@ export default function AttendancePage() {
     setAttendance(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const handleEditStudent = (student) => {
+    setEditingStudent(student);
+    setEditFormData({ name: student.name, usn: student.usn });
+    setIsNewStudent(false);
+    setShowEditModal(true);
+  };
+
+  const handleAddStudent = () => {
+    setEditingStudent(null);
+    setEditFormData({ name: '', usn: '' });
+    setIsNewStudent(true);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteStudent = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this student? This will not remove their historical attendance records, but they will no longer appear in future sessions.')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_URL}/students/${id}`);
+      setStudents(prev => prev.filter(s => s._id !== id));
+      
+      // Also clean up attendance state
+      const nextAtt = { ...attendance };
+      delete nextAtt[id];
+      setAttendance(nextAtt);
+      
+      setShowEditModal(false);
+      setSuccessMsg('Student deleted successfully');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete student.');
+    }
+  };
+
+  const handleSaveStudent = async (e) => {
+    e.preventDefault();
+    setEditSubmitting(true);
+    try {
+      if (isNewStudent) {
+        const res = await axios.post(`${API_URL}/students/single`, editFormData);
+        setStudents(prev => [...prev, res.data].sort((a,b) => a.usn.localeCompare(b.usn)));
+        setAttendance(prev => ({ ...prev, [res.data._id]: false }));
+        setSuccessMsg('Student added successfully');
+      } else {
+        const res = await axios.put(`${API_URL}/students/${editingStudent._id}`, editFormData);
+        setStudents(prev => prev.map(s => s._id === res.data._id ? res.data : s));
+        setSuccessMsg('Student updated successfully');
+      }
+      setShowEditModal(false);
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error('Save student error:', err);
+      alert(err.response?.data?.message || 'Failed to save student.');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
   const handleOpenModal = () => {
     if (students.length === 0) {
       alert("No students available to submit attendance.");
@@ -199,6 +267,14 @@ export default function AttendancePage() {
               </div>
             )}
             
+            <button
+              onClick={handleAddStudent}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-50 hover:bg-primary-100 text-primary-700 font-medium rounded-lg transition-colors text-sm border border-primary-200"
+            >
+              <UserPlus className="w-4 h-4" />
+              Add Student
+            </button>
+
             <label className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg cursor-pointer transition-colors text-sm border border-slate-200">
               <Upload className="w-4 h-4" />
               {uploading ? 'Importing...' : 'Import Excel'}
@@ -224,6 +300,7 @@ export default function AttendancePage() {
                   <th className="py-4 px-6">Student Name</th>
                   <th className="py-4 px-6">USN</th>
                   <th className="py-4 px-6 text-center">Status</th>
+                  <th className="py-4 px-6 text-center w-24">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -248,18 +325,32 @@ export default function AttendancePage() {
                       <td className={`py-3 px-6 text-sm font-medium ${isFocused ? 'text-primary-800' : 'text-slate-900'}`}>{student.name}</td>
                       <td className="py-3 px-6 text-sm text-slate-500 font-mono tracking-wide">{student.usn}</td>
                       <td className="py-3 px-6 text-center">
-                        <div className="inline-flex items-center justify-center">
-                          <button
-                            type="button"
-                            className={`w-7 h-7 rounded border flex items-center justify-center transition-all ${
-                              isPresent 
-                                ? 'bg-primary-600 border-primary-600 text-white shadow-inner scale-110' 
-                                : 'bg-white border-slate-300 text-transparent hover:border-primary-400'
-                            }`}
-                          >
-                            <Check className="w-4 h-4 stroke-[3]" />
-                          </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="inline-flex items-center justify-center">
+                            <button
+                              type="button"
+                              className={`w-7 h-7 rounded border flex items-center justify-center transition-all ${
+                                isPresent 
+                                  ? 'bg-primary-600 border-primary-600 text-white shadow-inner scale-110' 
+                                  : 'bg-white border-slate-300 text-transparent hover:border-primary-400'
+                              }`}
+                            >
+                              <Check className="w-4 h-4 stroke-[3]" />
+                            </button>
+                          </div>
                         </div>
+                      </td>
+                      <td className="py-3 px-6 text-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditStudent(student);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-md transition-all active:scale-90"
+                          title="Edit Student"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -346,6 +437,78 @@ export default function AttendancePage() {
                   className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-70 transition-all active:scale-95 cursor-pointer"
                 >
                   {submitting ? 'Saving...' : 'Done'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Student Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-slate-900">{isNewStudent ? 'Add Student' : 'Edit Student'}</h2>
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="text-slate-400 hover:text-slate-700 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveStudent} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Student Name</label>
+                <input 
+                  required
+                  type="text" 
+                  value={editFormData.name}
+                  onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
+                  placeholder="e.g. John Doe"
+                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">USN</label>
+                <input 
+                  required
+                  type="text" 
+                  value={editFormData.usn}
+                  onChange={e => setEditFormData({ ...editFormData, usn: e.target.value })}
+                  placeholder="e.g. U24E01CYXXX"
+                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
+                />
+              </div>
+              
+              <div className="pt-4 flex flex-col gap-2">
+                <button 
+                  type="submit" 
+                  disabled={editSubmitting}
+                  className="w-full px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-70 transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {editSubmitting ? 'Saving...' : 'Save Changes'}
+                </button>
+                
+                {!isNewStudent && (
+                  <button 
+                    type="button" 
+                    onClick={() => handleDeleteStudent(editingStudent._id)}
+                    className="w-full px-4 py-2.5 bg-white text-red-600 border border-red-200 rounded-lg hover:bg-red-50 font-medium transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Student
+                  </button>
+                )}
+                
+                <button 
+                  type="button" 
+                  onClick={() => setShowEditModal(false)}
+                  className="w-full px-4 py-2.5 text-slate-500 hover:text-slate-700 font-medium transition-all"
+                >
+                  Cancel
                 </button>
               </div>
             </form>
