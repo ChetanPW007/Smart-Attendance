@@ -21,8 +21,8 @@ export default function LoginPage({ onLogin }) {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 animate-in fade-in duration-500">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8 text-primary-600" />
+          <div className="mx-auto mb-6 w-20 h-20 rounded-2xl bg-white shadow-soft flex items-center justify-center p-3 border border-slate-100/50">
+            <img src="/favicon.png" alt="App Logo" className="w-full h-full object-contain" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900">Admin Login</h2>
           <p className="text-slate-500 mt-2 text-sm">Sign in to manage student attendance.</p>
