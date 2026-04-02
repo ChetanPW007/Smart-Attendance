@@ -233,6 +233,9 @@ export default function AttendancePage() {
     }
   };
 
+  const presentCount = Object.values(attendance).filter(status => status).length;
+  const totalCount = students.length;
+
   if (loading) {
     return <div className="p-8 text-center text-slate-500 animate-pulse">Loading students...</div>;
   }
@@ -252,10 +255,15 @@ export default function AttendancePage() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Today's Attendance</h1>
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-100 text-slate-500 text-xs font-semibold">
-                <Keyboard className="w-3.5 h-3.5" />
-                Keyboard Enabled (Up/Down/Enter)
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-100 text-primary-700 text-sm font-bold border border-primary-200 shadow-sm animate-in zoom-in-90">
+                  {presentCount} / {totalCount} Present
+                </span>
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-100 text-slate-500 text-xs font-semibold">
+                  <Keyboard className="w-3.5 h-3.5" />
+                  Keyboard Enabled
+                </span>
+              </div>
             </div>
             <p className="mt-1 text-sm text-slate-500">Use arrow keys or click to mark students present. Default is Absent.</p>
           </div>
@@ -360,14 +368,17 @@ export default function AttendancePage() {
           </div>
         )}
 
-        <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+          <div className="text-sm font-medium text-slate-600">
+            Selected: <span className="text-primary-700 font-bold">{presentCount}</span> students
+          </div>
           <button
             onClick={handleOpenModal}
             disabled={students.length === 0}
             className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg font-medium shadow-sm transition-all active:scale-95"
           >
             <Save className="w-4 h-4" />
-            Submit Attendance
+            Submit Attendance ({presentCount}/{totalCount})
           </button>
         </div>
       </div>
