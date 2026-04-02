@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Users, Clock, BookOpen, X, CheckCircle2, Share2, FileText, Table, Search, Calendar } from 'lucide-react';
+import { Users, Clock, BookOpen, X, CheckCircle2, Share2, FileText, Table, Search, Calendar, Trash2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -77,6 +77,24 @@ export default function HistoryPage() {
       console.error('Error fetching session details:', error);
     } finally {
       setDetailsLoading(false);
+    }
+  };
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation(); // Prevent opening the modal
+    if (!window.confirm('Are you sure you want to delete this attendance session? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_URL}/attendance/${id}`);
+      // Update local state
+      const updatedSessions = sessions.filter(s => s._id !== id);
+      setSessions(updatedSessions);
+      setFilteredSessions(updatedSessions);
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      alert('Failed to delete session. Please try again.');
     }
   };
 
@@ -236,9 +254,18 @@ export default function HistoryPage() {
                 <h3 className="text-xl font-bold tracking-tight text-slate-900 group-hover:text-primary-600 transition-colors">
                   {session.className}
                 </h3>
-                <span className="bg-primary-50 text-primary-700 text-[11px] font-bold px-3 py-1.5 rounded-full border border-primary-100 uppercase tracking-wide">
-                  Session {session.session}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="bg-primary-50 text-primary-700 text-[11px] font-bold px-3 py-1.5 rounded-full border border-primary-100 uppercase tracking-wide">
+                    Session {session.session}
+                  </span>
+                  <button
+                    onClick={(e) => handleDelete(e, session._id)}
+                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all active:scale-90"
+                    title="Delete Session"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               
               <div className="space-y-3 mt-6">

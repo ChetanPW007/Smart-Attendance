@@ -49,4 +49,15 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// DELETE a session
+router.delete('/:id', async (req, res) => {
+  try {
+    const deletedSession = await Attendance.findByIdAndDelete(req.params.id);
+    if (!deletedSession) return res.status(404).json({ message: 'Session not found' });
+    res.json({ message: 'Session deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 module.exports = router;
