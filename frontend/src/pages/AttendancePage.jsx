@@ -12,6 +12,7 @@ export default function AttendancePage() {
   const [showModal, setShowModal] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [apiError, setApiError] = useState('');
   
   // Modal states
   const [className, setClassName] = useState('');
@@ -66,15 +67,19 @@ export default function AttendancePage() {
   const fetchStudents = async () => {
     try {
       const response = await axios.get(`${API_URL}/students`);
-      setStudents(response.data);
+      const data = Array.isArray(response.data) ? response.data : [];
+      setStudents(data);
+      setApiError('');
       // Initialize all to absent (unchecked)
       const initialAttendance = {};
-      response.data.forEach(s => {
+      data.forEach(s => {
         initialAttendance[s._id] = false;
       });
       setAttendance(initialAttendance);
     } catch (error) {
       console.error('Error fetching students:', error);
+      setStudents([]);
+      setApiError('Cannot connect to the database. Please set MONGO_URI in Vercel Environment Variables and redeploy.');
     } finally {
       setLoading(false);
     }
@@ -166,6 +171,13 @@ export default function AttendancePage() {
 
   return (
     <div className="max-w-5xl mx-auto w-full p-4 sm:p-6 lg:p-8 animate-in fade-in duration-500">
+      {/* DB Connection Error Banner */}
+      {apiError && (
+        <div className="mb-4 flex items-start gap-3 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm font-medium shadow-sm">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <span>{apiError}</span>
+        </div>
+      )}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         
         <div className="p-6 sm:p-8 border-b border-slate-100 flex justify-between items-center bg-white flex-wrap gap-4">

@@ -27,10 +27,13 @@ export default function HistoryPage() {
   const fetchHistory = async () => {
     try {
       const response = await axios.get(`${API_URL}/attendance`);
-      setSessions(response.data);
-      setFilteredSessions(response.data);
+      const data = Array.isArray(response.data) ? response.data : [];
+      setSessions(data);
+      setFilteredSessions(data);
     } catch (error) {
       console.error('Error fetching history:', error);
+      setSessions([]);       // Always set to array on error
+      setFilteredSessions([]);
     } finally {
       setLoading(false);
     }
