@@ -4,6 +4,5 @@ backend/.env
 .DS_Store
 dist/
 build/
-public/
 uploads/
 *.log
